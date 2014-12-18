@@ -31,6 +31,9 @@ struct ArmAngles {
 	float elb_angle_dn;
 	/* wrist angle */
 	float wri_angle_d;
+	/*base angle*/
+	float bas_angle_r;
+	float bas_angle_d;
 };
 
 class IKConverter {

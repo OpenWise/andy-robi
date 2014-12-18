@@ -86,11 +86,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="IKConverter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PracticalSocket.cpp" />
     <ClCompile Include="RobotFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="IKConverter.h" />
     <ClInclude Include="PracticalSocket.h" />
     <ClInclude Include="RobotFunctions.h" />
   </ItemGroup>

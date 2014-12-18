@@ -64,6 +64,9 @@ void IKConverter::convertXYZtoServoAngles(float x, float y, float z, float grip_
 	angles->elb_angle_d = elb_angle_d;
 	angles->elb_angle_dn = elb_angle_dn;
 	angles->wri_angle_d = wri_angle_d;
+	angles->bas_angle_r = bas_angle_r;
+	angles->bas_angle_d = degrees(bas_angle_r);
+
 		
 }
 

@@ -41,10 +41,13 @@ bool showNormalizedSkeleton = false;
 bool showExtremityPoint = false;
 float maxRangeValue = 1000;
 int counter = 0;
+bool isRobotConnected = false;
 
 VideoCapture* cap = NULL;
 Mat frame;
 TCPSocket* sock = NULL;
+IKConverter G_IKConverter;
+int g_pinch = 1;
 
 /* Socket Control*/
 int TCPconnect(string servAddress, unsigned short echoServPort)
@@ -128,17 +131,27 @@ void MoveRobot(float x, float y, float z)
 	if (z < 0.45) TCPsend("s");
 }
 
-void MoveRobotAngels(float x, float y, float z, uint8_t* ethernet_buff)
+void MoveRobotAngels(float x, float y, float z, int pinch, uint8_t* ethernet_buff)
 {
 
 	pkt_t* packet_ptr = (pkt_t *)ethernet_buff;
 	angle_t* angle_ptr = (angle_t *)packet_ptr->data;
+	ArmAngles angles;
 
-	angle_ptr->base = 45;
+	G_IKConverter.convertXYZtoServoAngles(x, y, z, 45, &angles);
+	angle_ptr->base = angles.bas_angle_d;
+	angle_ptr->elbow = angles.elb_angle_d;
+	angle_ptr->sholder = angles.shl_angle_d;
+	angle_ptr->wrist = angles.wri_angle_d;
+	if (pinch < 33)  g_pinch = 0;
+	else if (pinch > 66) g_pinch = 1;
+	angle_ptr->gripper = g_pinch;
+	
+	/*angle_ptr->base = 45;
 	angle_ptr->elbow = 45;
 	angle_ptr->gripper = 45;
 	angle_ptr->sholder = 45;
-	angle_ptr->wrist = 45;
+	angle_ptr->wrist = 45;*/
 
 	packet_ptr->magic = 0xAABB;
 	packet_ptr->cmd = 0x1;
@@ -184,15 +197,11 @@ static void ProcessJoints(PXCHandData *handAnalyzer, pxcI64 timeStamp = 0) {
 
 		cout << "x: " << nodes[0][1].positionWorld.x << "\ty: " << nodes[0][0].positionWorld.y << "\tz: " << nodes[0][0].positionWorld.z << "\topeness: " << handData->QueryOpenness() << "\n";
 		circle(frame, Point(frame.size().width - nodes[0][1].positionImage.x, nodes[0][1].positionImage.y), 1 / nodes[0][1].positionWorld.z * 15, (0, 0, 255 * handData->QueryOpenness() / 100 ), -1);
-		if (counter++ > 1)
+		if (counter++ > 5 && isRobotConnected)
 		{
-			MoveRobotAngels(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, ethernet_buff);
-			TCPsendBuff(ethernet_buff);
-			for (int i = 0; i < 10000000; i++) {
-				i++;
-				i--;
-			}
+			MoveRobotAngels(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
 			//MoveRobot(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z);
+			TCPsendBuff(ethernet_buff);
 			counter = 0;
 		}
 
@@ -245,14 +254,21 @@ int main(int argc, char* argv[])
 
 	string addr;
 	UINT port;
-	cout << "Please Enter Robot IP Address[192.168.0.102]:\n";
-	cin >> addr;
-	if (addr == "0") addr = "192.168.0.102";
-	cout << "Please Enter Robot port[10500]:\n";
-	cin >> port;
-	if (port == 0) port = 10500;
-	int err = TCPconnect(addr, port);
-	if (err) return 1;
+	string ans;
+	cout << "Connect to Robot?:\n";
+	cin >> ans;
+	if (ans == "y")
+	{
+		isRobotConnected = true;
+		cout << "Please Enter Robot IP Address[192.168.0.102]:\n";
+		cin >> addr;
+		if (addr == "0") addr = "192.168.0.100";
+		cout << "Please Enter Robot port[10500]:\n";
+		cin >> port;
+		if (port == 0) port = 10500;
+		int err = TCPconnect(addr, port);
+		if (err) return 1;
+	}
 
 	PXCSenseManager *pp = g_session->CreateSenseManager();
 	if (!pp)

@@ -24,12 +24,18 @@
     <ClCompile Include="PracticalSocket.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="IKConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="RobotFunctions.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="PracticalSocket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IKConverter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
