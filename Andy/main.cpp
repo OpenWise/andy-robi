@@ -23,12 +23,12 @@
 #define MAX_ROBOT_Y 0.13
 #define MIN_ROBOT_Z 0
 #define MAX_ROBOT_Z 0.42 
-#define MIN_CAMERA_X 0.4
-#define MAX_CAMERA_X -0.4
+#define MIN_CAMERA_X -0.4
+#define MAX_CAMERA_X 0.4
 #define MIN_CAMERA_Y -0.26
 #define MAX_CAMERA_Y 0.26
-#define MIN_CAMERA_Z 0.7
-#define MAX_CAMERA_Z 0.3
+#define MIN_CAMERA_Z 0.8
+#define MAX_CAMERA_Z 0.2
 
 
 
@@ -158,19 +158,30 @@ robot_pnt_t ConvertCameraXYZ2RobotXYZ(float x, float y, float z)
 	return robotPoints;
 }
 
-void MoveRobot(float x, float y, float z)
+void MoveRobot(float x, float y, float z, int pinch, uint8_t* ethernet_buff)
 {
-	if (x > 0.1) TCPsend("a");
-	if (x < -0.1) TCPsend("d");
-	if (y > 0.1) TCPsend("z");
-	if (y < -0.1) TCPsend("x");
-	if (z > 0.45) TCPsend("w");
-	if (z < 0.45) TCPsend("s");
+	pkt_t* packet_ptr = (pkt_t *)ethernet_buff;
+	angle_t* angle_ptr = (angle_t *)packet_ptr->data;
+
+	angle_ptr->base = ConvertRange(x, MIN_CAMERA_X, MAX_CAMERA_X, 0, 100);
+	angle_ptr->sholder = ConvertRange(z, MIN_CAMERA_Z, MAX_CAMERA_Z, 60, 0);
+	angle_ptr->elbow = ConvertRange(y, MIN_CAMERA_Y, MAX_CAMERA_Y, 100, 0);
+	angle_ptr->wrist = 45;// ConvertRange(x, MIN_CAMERA_X, MAX_CAMERA_X, 0, 100);
+
+	cout << "base:" << (float)angle_ptr->base << " elbow: " << (float)angle_ptr->elbow << " shoulder: " << (float)angle_ptr->sholder << \
+		" wrist:" << (float)angle_ptr->wrist << "\n";
+
+	if (pinch < 33)  g_pinch = 0;
+	else if (pinch > 66) g_pinch = 1;
+	angle_ptr->gripper = g_pinch;
+
+	packet_ptr->magic = 0xAABB;
+	packet_ptr->cmd = 0x1;
 }
 
 void MoveRobotAngels(float x, float y, float z, int pinch, uint8_t* ethernet_buff)
 {
-
+	
 	pkt_t* packet_ptr = (pkt_t *)ethernet_buff;
 	angle_t* angle_ptr = (angle_t *)packet_ptr->data;
 	ArmAngles angles;
@@ -178,13 +189,17 @@ void MoveRobotAngels(float x, float y, float z, int pinch, uint8_t* ethernet_buf
 
 	G_IKConverter.convertXYZtoServoAngles(robotPoints.x, robotPoints.y, robotPoints.z, 45, &angles);
 	cout << "robot_x:" << robotPoints.x << "\trobot_y: " << robotPoints.y << "\trobot_z: " << robotPoints.z << "\n";
-	cout << "base:" << angles.bas_angle_d << " elbow: " << angles.elb_angle_d << " shoulder: " << angles.shl_angle_d << \
-		" wrist:" << angles.wri_angle_d << "\n";
 
-	angle_ptr->base = angles.bas_angle_d;
+	//test base only
+	angles.elb_angle_d = 60;
+	angles.shl_angle_d = 0;
+	angles.wri_angle_d = 0;
+
+	angle_ptr->base = angles.bas_angle_d + 45;
 	angle_ptr->elbow = angles.elb_angle_d;
 	angle_ptr->sholder = angles.shl_angle_d;
 	angle_ptr->wrist = angles.wri_angle_d;
+
 	if (pinch < 33)  g_pinch = 0;
 	else if (pinch > 66) g_pinch = 1;
 	angle_ptr->gripper = g_pinch;
@@ -194,6 +209,9 @@ void MoveRobotAngels(float x, float y, float z, int pinch, uint8_t* ethernet_buf
 	angle_ptr->gripper = 45;
 	angle_ptr->sholder = 45;
 	angle_ptr->wrist = 45;*/
+
+	cout << "base:" << angles.bas_angle_d << " elbow: " << angles.elb_angle_d << " shoulder: " << angles.shl_angle_d << \
+		" wrist:" << angles.wri_angle_d << "\n";
 
 	packet_ptr->magic = 0xAABB;
 	packet_ptr->cmd = 0x1;
@@ -239,10 +257,10 @@ static void ProcessJoints(PXCHandData *handAnalyzer, pxcI64 timeStamp = 0) {
 
 		cout << "x: " << nodes[0][1].positionWorld.x << "\ty: " << nodes[0][0].positionWorld.y << "\tz: " << nodes[0][0].positionWorld.z << "\topeness: " << handData->QueryOpenness() << "\n";
 		circle(frame, Point(frame.size().width - nodes[0][1].positionImage.x, nodes[0][1].positionImage.y), 1 / nodes[0][1].positionWorld.z * 15, (0, 0, 255 * handData->QueryOpenness() / 100 ), -1);
-		if (counter++ > 2)
+		if (counter++ >= 0)
 		{
-			MoveRobotAngels(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
-			//MoveRobot(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z);
+			//MoveRobotAngels(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
+			MoveRobot(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
 			if (isRobotConnected) TCPsendBuff(ethernet_buff);
 			counter = 0;
 		}
