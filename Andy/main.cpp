@@ -23,8 +23,8 @@
 #define MAX_ROBOT_Y 0.13
 #define MIN_ROBOT_Z 0
 #define MAX_ROBOT_Z 0.42 
-#define MIN_CAMERA_X -0.4
-#define MAX_CAMERA_X 0.4
+#define MIN_CAMERA_X -0.3
+#define MAX_CAMERA_X 0.3
 #define MIN_CAMERA_Y -0.26
 #define MAX_CAMERA_Y 0.26
 #define MIN_CAMERA_Z 0.8
@@ -140,6 +140,27 @@ static bool DisplayDeviceConnection(bool state)
 	return g_connected;
 }
 
+
+//-----------------------------------------------------------------------
+float getPitch(PXCPoint4DF32 point)
+{
+	vector<float> m_afTuple;
+	m_afTuple.resize(4);
+	m_afTuple[0] = point.w;
+	m_afTuple[1] = point.x;
+	m_afTuple[2] = point.y;
+	m_afTuple[3] = point.z;
+
+	float fTx = 2.0f*m_afTuple[1];
+	float fTz = 2.0f*m_afTuple[3];
+	float fTwx = fTx*m_afTuple[0];
+	float fTxx = fTx*m_afTuple[1];
+	float fTyz = fTz*m_afTuple[2];
+	float fTzz = fTz*m_afTuple[3];
+	return atan2(fTyz + fTwx, 1.0f - (fTxx + fTzz));
+}
+
+
 float ConvertRange(float oldValue, float oldMin, float oldMax, float newMin, float newMax)
 {
 	return (((oldValue - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
@@ -158,7 +179,7 @@ robot_pnt_t ConvertCameraXYZ2RobotXYZ(float x, float y, float z)
 	return robotPoints;
 }
 
-void MoveRobot(float x, float y, float z, int pinch, uint8_t* ethernet_buff)
+void MoveRobot(float x, float y, float z, int pinch, float pitch, uint8_t* ethernet_buff)
 {
 	pkt_t* packet_ptr = (pkt_t *)ethernet_buff;
 	angle_t* angle_ptr = (angle_t *)packet_ptr->data;
@@ -166,10 +187,13 @@ void MoveRobot(float x, float y, float z, int pinch, uint8_t* ethernet_buff)
 	angle_ptr->base = ConvertRange(x, MIN_CAMERA_X, MAX_CAMERA_X, 0, 100);
 	angle_ptr->sholder = ConvertRange(z, MIN_CAMERA_Z, MAX_CAMERA_Z, 60, 0);
 	angle_ptr->elbow = ConvertRange(y, MIN_CAMERA_Y, MAX_CAMERA_Y, 100, 0);
-	angle_ptr->wrist = 45;// ConvertRange(x, MIN_CAMERA_X, MAX_CAMERA_X, 0, 100);
+	if (pitch > 100) pitch = 100;
+	angle_ptr->wrist = ConvertRange(pitch, 0, -0.07, 100, 0);
+
+	cout << pitch << "\n";
 
 	cout << "base:" << (float)angle_ptr->base << " elbow: " << (float)angle_ptr->elbow << " shoulder: " << (float)angle_ptr->sholder << \
-		" wrist:" << (float)angle_ptr->wrist << "\n";
+		" wrist:" << pitch << "\n";
 
 	if (pinch < 33)  g_pinch = 0;
 	else if (pinch > 66) g_pinch = 1;
@@ -259,8 +283,9 @@ static void ProcessJoints(PXCHandData *handAnalyzer, pxcI64 timeStamp = 0) {
 		circle(frame, Point(frame.size().width - nodes[0][1].positionImage.x, nodes[0][1].positionImage.y), 1 / nodes[0][1].positionWorld.z * 15, (0, 0, 255 * handData->QueryOpenness() / 100 ), -1);
 		if (counter++ >= 0)
 		{
+			float pitch = nodes[0][PXCHandData::JointType::JOINT_MIDDLE_BASE].positionWorld.z - nodes[0][PXCHandData::JointType::JOINT_WRIST].positionWorld.z;
 			//MoveRobotAngels(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
-			MoveRobot(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
+			MoveRobot(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), pitch, ethernet_buff);
 			if (isRobotConnected) TCPsendBuff(ethernet_buff);
 			counter = 0;
 		}
