@@ -17,6 +17,21 @@
 #include <cstdint>
 #include "IKConverter.h"
 
+#define MIN_ROBOT_X -0.16
+#define MAX_ROBOT_X 0.16 
+#define MIN_ROBOT_Y 0
+#define MAX_ROBOT_Y 0.13
+#define MIN_ROBOT_Z 0
+#define MAX_ROBOT_Z 0.42 
+#define MIN_CAMERA_X 0.4
+#define MAX_CAMERA_X -0.4
+#define MIN_CAMERA_Y -0.26
+#define MAX_CAMERA_Y 0.26
+#define MIN_CAMERA_Z 0.7
+#define MAX_CAMERA_Z 0.3
+
+
+
 using namespace std;
 using namespace cv;
 
@@ -33,6 +48,12 @@ typedef struct{
 	uint8_t cmd;
 	uint8_t data[16];
 } pkt_t;
+
+typedef struct{
+	float x;
+	float y;
+	float z;
+} robot_pnt_t;
 
 PXCSession *g_session = 0;
 bool g_stop = false;
@@ -76,8 +97,7 @@ void TCPsend(char* msg)
 void TCPsendBuff(uint8_t* eth_packet)
 {
 	// Send the string to the echo server
-	int buffLen = 32;   // Determine 
-	//cout << eth_packet;
+	int buffLen = 32;   // Determine cout << eth_packet;
 	sock->send(eth_packet, buffLen);
 }
 
@@ -86,8 +106,7 @@ void TCPReceive(int size)
 {
 	char echoBuffer[32 + 1];    // Buffer for echo string + \0
 	int bytesReceived = 0;              // Bytes read on each recv()
-	int totalBytesReceived = 0;         // Total bytes read
-	// Receive the same string back from the server
+	int totalBytesReceived = 0;         // Total bytes read Receive the same string back from the server
 	cout << "Received: ";               // Setup to print the echoed string
 	while (totalBytesReceived < size) {
 		// Receive up to the buffer size bytes from the sender
@@ -121,6 +140,24 @@ static bool DisplayDeviceConnection(bool state)
 	return g_connected;
 }
 
+float ConvertRange(float oldValue, float oldMin, float oldMax, float newMin, float newMax)
+{
+	return (((oldValue - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
+}
+
+robot_pnt_t ConvertCameraXYZ2RobotXYZ(float x, float y, float z)
+{
+	robot_pnt_t robotPoints;
+
+	robotPoints.x = ConvertRange(x, MIN_CAMERA_X, MAX_CAMERA_X, MIN_ROBOT_X, MAX_ROBOT_X);
+	float tempY = ConvertRange(z, MIN_CAMERA_Z, MAX_CAMERA_Z, MIN_ROBOT_Y, MAX_ROBOT_Y);
+	robotPoints.y = (tempY < 0) ? 0 : tempY;
+	float tempZ = ConvertRange(y, MIN_CAMERA_Y, MAX_CAMERA_Y, MIN_ROBOT_Z, MAX_ROBOT_Z);
+	robotPoints.z = (tempZ < 0) ? 0 : tempZ;
+
+	return robotPoints;
+}
+
 void MoveRobot(float x, float y, float z)
 {
 	if (x > 0.1) TCPsend("a");
@@ -137,8 +174,13 @@ void MoveRobotAngels(float x, float y, float z, int pinch, uint8_t* ethernet_buf
 	pkt_t* packet_ptr = (pkt_t *)ethernet_buff;
 	angle_t* angle_ptr = (angle_t *)packet_ptr->data;
 	ArmAngles angles;
+	robot_pnt_t robotPoints = ConvertCameraXYZ2RobotXYZ(x, y, z);
 
-	G_IKConverter.convertXYZtoServoAngles(x, y, z, 45, &angles);
+	G_IKConverter.convertXYZtoServoAngles(robotPoints.x, robotPoints.y, robotPoints.z, 45, &angles);
+	cout << "robot_x:" << robotPoints.x << "\trobot_y: " << robotPoints.y << "\trobot_z: " << robotPoints.z << "\n";
+	cout << "base:" << angles.bas_angle_d << " elbow: " << angles.elb_angle_d << " shoulder: " << angles.shl_angle_d << \
+		" wrist:" << angles.wri_angle_d << "\n";
+
 	angle_ptr->base = angles.bas_angle_d;
 	angle_ptr->elbow = angles.elb_angle_d;
 	angle_ptr->sholder = angles.shl_angle_d;
@@ -197,11 +239,11 @@ static void ProcessJoints(PXCHandData *handAnalyzer, pxcI64 timeStamp = 0) {
 
 		cout << "x: " << nodes[0][1].positionWorld.x << "\ty: " << nodes[0][0].positionWorld.y << "\tz: " << nodes[0][0].positionWorld.z << "\topeness: " << handData->QueryOpenness() << "\n";
 		circle(frame, Point(frame.size().width - nodes[0][1].positionImage.x, nodes[0][1].positionImage.y), 1 / nodes[0][1].positionWorld.z * 15, (0, 0, 255 * handData->QueryOpenness() / 100 ), -1);
-		if (counter++ > 5 && isRobotConnected)
+		if (counter++ > 2)
 		{
 			MoveRobotAngels(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z, handData->QueryOpenness(), ethernet_buff);
 			//MoveRobot(nodes[0][1].positionWorld.x, nodes[0][1].positionWorld.y, nodes[0][1].positionWorld.z);
-			TCPsendBuff(ethernet_buff);
+			if (isRobotConnected) TCPsendBuff(ethernet_buff);
 			counter = 0;
 		}
 
@@ -210,12 +252,12 @@ static void ProcessJoints(PXCHandData *handAnalyzer, pxcI64 timeStamp = 0) {
 	}
 }
 
-
 int main(int argc, char* argv[])
 {
 	namedWindow("AndyCam", CV_WINDOW_AUTOSIZE);
+	
+	/*
 	Vector<VideoCapture> cams;
-
 	// try to find up to 5 video devices
 	for (int device = 0; device < 5; device++)
 	{
@@ -243,9 +285,12 @@ int main(int argc, char* argv[])
 		}
 	}
 	else
-		cap = &cams[0]; // if only one device use it
+		cap = &cams[0]; // if only one device use it 
+	
+	cams.clear(); */
 
-	cams.clear();
+	cap = new VideoCapture(0);
+
 	g_session = PXCSession_Create();
 	if (g_session == NULL) {
 		printf("Failed to create an SDK session");
@@ -260,7 +305,7 @@ int main(int argc, char* argv[])
 	if (ans == "y")
 	{
 		isRobotConnected = true;
-		cout << "Please Enter Robot IP Address[192.168.0.102]:\n";
+		cout << "Please Enter Robot IP Address[192.168.0.100]:\n";
 		cin >> addr;
 		if (addr == "0") addr = "192.168.0.100";
 		cout << "Please Enter Robot port[10500]:\n";
@@ -314,43 +359,8 @@ int main(int argc, char* argv[])
 		config->ApplyChanges();
 		config->Update();
 
-		/*if (IsCMBGestureInit() == false)
-		{
-		pxcI32 totalNumOfGestures = config->QueryGesturesTotalNumber();
-		if (totalNumOfGestures > 0)
-		{
-		SetCMBGesturePos(hwndDlg);
-		for (int i = 0; i < totalNumOfGestures; i++)
-		{
-		pxcCHAR* gestureName = new pxcCHAR[PXCHandData::MAX_NAME_SIZE];
-		if (config->QueryGestureNameByIndex(i, PXCHandData::MAX_NAME_SIZE, gestureName) == pxcStatus::PXC_STATUS_NO_ERROR)
-		{
-		AddCMBItem(hwndDlg, gestureName);
-		}
-		delete[] gestureName;
-		gestureName = NULL;
-		}
-		EnableCMBItem(hwndDlg, true);
-		}
-		}*/
-
 		while (!g_stop)
 		{
-			/*int index = GetSelectedGesture(hwndDlg);
-			if (index > 0 && gestureIndex != index)
-			{
-			gestureIndex = index;
-			pxcCHAR* gestureName = new pxcCHAR[PXCHandData::MAX_NAME_SIZE];
-			if (config->QueryGestureNameByIndex(index - 1, PXCHandData::MAX_NAME_SIZE, gestureName) == pxcStatus::PXC_STATUS_NO_ERROR)
-			{
-			config->DisableAllGestures();
-			config->EnableGesture(gestureName, true);
-
-			config->ApplyChanges();
-			}
-			delete[] gestureName;
-			gestureName = NULL;
-			}*/
 
 			bool bSuccess = cap->read(frame);
 			if (!bSuccess) printf("Cannot read a frame from video stream\n");

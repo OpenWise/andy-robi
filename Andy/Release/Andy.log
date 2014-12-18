@@ -1,14 +1,17 @@
-﻿Build started 12/18/2014 8:59:20 AM.
+﻿Build started 12/18/2014 11:00:18 AM.
      1>Project "C:\Users\ssmeleh\Documents\Visual Studio 2013\Projects\andy-robi\Andy\Andy.vcxproj" on node 2 (Build target(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /I"C:\Program Files (x86)\Intel\RSSDK\\include" /IC:\opencv\build\include /I"C:\Program Files (x86)\Visual Leak Detector\include" /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _LIB /D _CRT_SECURE_NO_WARNINGS /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /wd4290 /analyze- /errorReport:prompt main.cpp
          main.cpp
-     1>main.cpp(142): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
-     1>main.cpp(143): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
-     1>main.cpp(144): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
-     1>main.cpp(145): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
-     1>main.cpp(199): warning C4244: 'argument' : conversion from 'pxcF32' to 'int', possible loss of data
-     1>main.cpp(359): warning C4800: 'pxcBool' : forcing value to bool 'true' or 'false' (performance warning)
+     1>main.cpp(152): warning C4305: 'argument' : truncation from 'double' to 'float'
+     1>main.cpp(153): warning C4305: 'argument' : truncation from 'double' to 'float'
+     1>main.cpp(155): warning C4305: 'argument' : truncation from 'double' to 'float'
+     1>main.cpp(184): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
+     1>main.cpp(185): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
+     1>main.cpp(186): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
+     1>main.cpp(187): warning C4244: '=' : conversion from 'float' to 'uint8_t', possible loss of data
+     1>main.cpp(241): warning C4244: 'argument' : conversion from 'pxcF32' to 'int', possible loss of data
+     1>main.cpp(369): warning C4800: 'pxcBool' : forcing value to bool 'true' or 'false' (performance warning)
        Link:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\ssmeleh\Documents\Visual Studio 2013\Projects\andy-robi\Release\Andy.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:C:\opencv\build\x86\vc12\lib /LIBPATH:../common/lib/Win32/v120 /LIBPATH:../../lib/Win32 /LIBPATH:"C:\Program Files (x86)\Intel\RSSDK\/lib/Win32" /LIBPATH:"C:\Program Files (x86)\Intel\RSSDK\/sample/common/lib/Win32/v120" libpxc.lib libpxcutils.lib oleaut32.lib user32.lib odbccp32.lib ole32.lib advapi32.lib shell32.lib gdi32.lib comdlg32.lib uuid.lib winspool.lib odbc32.lib kernel32.lib comctl32.lib opencv_calib3d2410.lib opencv_core2410.lib opencv_features2d2410.lib opencv_flann2410.lib opencv_highgui2410.lib opencv_imgproc2410.lib opencv_ml2410.lib opencv_objdetect2410.lib opencv_photo2410.lib opencv_stitching2410.lib opencv_superres2410.lib opencv_ts2410.lib opencv_video2410.lib opencv_videostab2410.lib wsock32.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"C:\Users\ssmeleh\Documents\Visual Studio 2013\Projects\andy-robi\Release\Andy.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\ssmeleh\Documents\Visual Studio 2013\Projects\andy-robi\Release\Andy.lib" /MACHINE:X86 /SAFESEH Release\IKConverter.obj
          Release\main.obj
@@ -22,4 +25,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:02.81
+Time Elapsed 00:00:02.58

@@ -67,7 +67,6 @@ void IKConverter::convertXYZtoServoAngles(float x, float y, float z, float grip_
 	angles->bas_angle_r = bas_angle_r;
 	angles->bas_angle_d = degrees(bas_angle_r);
 
-		
 }
 
 void IKConverter::zero_x(ArmAngles *angles)
