@@ -299,7 +299,6 @@ int main(int argc, char* argv[])
 {
 	namedWindow("AndyCam", CV_WINDOW_AUTOSIZE);
 	
-	/*
 	Vector<VideoCapture> cams;
 	// try to find up to 5 video devices
 	for (int device = 0; device < 5; device++)
@@ -330,9 +329,9 @@ int main(int argc, char* argv[])
 	else
 		cap = &cams[0]; // if only one device use it 
 	
-	cams.clear(); */
+	cams.clear();
 
-	cap = new VideoCapture(0);
+	//cap = new VideoCapture(0);
 
 	g_session = PXCSession_Create();
 	if (g_session == NULL) {
